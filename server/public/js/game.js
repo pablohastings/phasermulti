@@ -13,6 +13,7 @@ var game = new Phaser.Game(config);
 function preload() {
   this.load.image("ship", "assets/spaceShips_001.png");
   this.load.image("otherPlayer", "assets/enemyBlack5.png");
+  this.load.image("uiship", "assets/uiship.png");
 }
 function create() {
   var self = this;
@@ -42,6 +43,10 @@ function create() {
     fontSize: "32px",
     fill: "#FF0000",
   });
+
+  this.uiship = self.add
+  .sprite(10, 10, 'uiship')
+  .setOrigin(0, 0)
 
   this.socket.on("currentPlayers", function (players) {
     Object.keys(players).forEach(function (id) {
