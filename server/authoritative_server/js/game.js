@@ -36,6 +36,11 @@ function create() {
       y: Math.floor(Math.random() * 500) + 50,
       playerId: socket.id,
       team: Math.floor(Math.random() * 2) == 0 ? "red" : "blue",
+      input: {
+        left: false,
+        right: false,
+        up: false
+      }
     };
     // add player to server
     addPlayer(self, players[socket.id]);
@@ -44,19 +49,55 @@ function create() {
     // update all other players of the new player
     socket.broadcast.emit("newPlayer", players[socket.id]);
 
-    socket.on('disconnect', function () {
-      console.log('user disconnected');
+    socket.on("disconnect", function () {
+      console.log("user disconnected");
       // remove player from server
       removePlayer(self, socket.id);
       // remove this player from our players object
       delete players[socket.id];
       // emit a message to all players to remove this player
-      io.emit('disconnected', socket.id);
+      io.emit("disconnected", socket.id);
+    });
+
+    // when a player moves, update the player data
+    socket.on("playerInput", function (inputData) {
+      console.log('playerInput');
+      handlePlayerInput(self, socket.id, inputData);
     });
   });
 }
 
-function update() {}
+function update() {
+  this.players.getChildren().forEach((player) => {
+    const input = players[player.playerId].input;
+    if (input.left) {
+      player.setAngularVelocity(-300);
+    } else if (input.right) {
+      player.setAngularVelocity(300);
+    } else {
+      player.setAngularVelocity(0);
+    }
+    if (input.up) {
+      this.physics.velocityFromRotation(player.rotation + 1.5, 200, player.body.acceleration);
+    } else {
+      player.setAcceleration(0);
+    }
+    players[player.playerId].x = player.x;
+    players[player.playerId].y = player.y;
+    players[player.playerId].rotation = player.rotation;
+  });
+  this.physics.world.wrap(this.players, 5);
+  io.emit('playerUpdates', players);
+}
+
+function handlePlayerInput(self, playerId, input) {
+  console.log('handlePlayerInput')
+  self.players.getChildren().forEach((player) => {
+    if (playerId === player.playerId) {
+      players[player.playerId].input = input;
+    }
+  });
+}
 
 function addPlayer(self, playerInfo) {
   const player = self.physics.add
@@ -71,7 +112,7 @@ function addPlayer(self, playerInfo) {
 }
 
 function removePlayer(self, playerId) {
-  console.log('removeplayer')
+  console.log("removeplayer");
   self.players.getChildren().forEach((player) => {
     if (playerId === player.playerId) {
       player.destroy();

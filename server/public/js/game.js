@@ -12,7 +12,7 @@ var config = {
 var game = new Phaser.Game(config);
 function preload() {
   this.load.image("ship", "assets/spaceShips_001.png");
-  this.load.image('otherPlayer', 'assets/enemyBlack5.png');
+  this.load.image("otherPlayer", "assets/enemyBlack5.png");
 }
 function create() {
   var self = this;
@@ -34,27 +34,33 @@ function create() {
   this.socket = io();
   this.players = this.add.group();
 
-  this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
-  this.redScoreText = this.add.text(584, 16, '', { fontSize: '32px', fill: '#FF0000' });
+  this.blueScoreText = this.add.text(16, 16, "", {
+    fontSize: "32px",
+    fill: "#0000FF",
+  });
+  this.redScoreText = this.add.text(584, 16, "", {
+    fontSize: "32px",
+    fill: "#FF0000",
+  });
 
-  this.socket.on('currentPlayers', function (players) {
+  this.socket.on("currentPlayers", function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
-        displayPlayers(self, players[id], 'ship');
-        console.log('ship')
+        displayPlayers(self, players[id], "ship");
+        console.log("ship");
       } else {
-        displayPlayers(self, players[id], 'otherPlayer');
-        console.log('otherPlayer')
+        displayPlayers(self, players[id], "otherPlayer");
+        console.log("otherPlayer");
       }
     });
   });
 
-  this.socket.on('newPlayer', function (playerInfo) {
-    displayPlayers(self, playerInfo, 'otherPlayer');
+  this.socket.on("newPlayer", function (playerInfo) {
+    displayPlayers(self, playerInfo, "otherPlayer");
   });
 
-  this.socket.on('disconnected', function (playerId) {
-    console.log('disconnected')
+  this.socket.on("disconnected", function (playerId) {
+    console.log("disconnected");
     self.players.getChildren().forEach(function (player) {
       if (playerId === player.playerId) {
         player.destroy();
@@ -62,16 +68,16 @@ function create() {
     });
   });
 
-  // this.socket.on('playerUpdates', function (players) {
-  //   Object.keys(players).forEach(function (id) {
-  //     self.players.getChildren().forEach(function (player) {
-  //       if (players[id].playerId === player.playerId) {
-  //         player.setRotation(players[id].rotation);
-  //         player.setPosition(players[id].x, players[id].y);
-  //       }
-  //     });
-  //   });
-  // });
+  this.socket.on('playerUpdates', function (players) {
+    Object.keys(players).forEach(function (id) {
+      self.players.getChildren().forEach(function (player) {
+        if (players[id].playerId === player.playerId) {
+          player.setRotation(players[id].rotation);
+          player.setPosition(players[id].x, players[id].y);
+        }
+      });
+    });
+  });
 
   // this.socket.on('updateScore', function (scores) {
   //   self.blueScoreText.setText('Blue: ' + scores.blue);
@@ -86,17 +92,17 @@ function create() {
   //   }
   // });
 
-  // this.cursors = this.input.keyboard.createCursorKeys();
-  // this.leftKeyPressed = false;
-  // this.rightKeyPressed = false;
-  // this.upKeyPressed = false;
+  this.cursors = this.input.keyboard.createCursorKeys();
+  this.leftKeyPressed = false;
+  this.rightKeyPressed = false;
+  this.upKeyPressed = false;
 }
 
 function displayPlayers(self, playerInfo, sprite) {
   console.log("displayPlayers");
-  console.log(playerInfo.team)
-  console.log(playerInfo.x +":" +playerInfo.y)
-  console.log("sprite "+sprite)
+  console.log(playerInfo.team);
+  console.log(playerInfo.x + ":" + playerInfo.y);
+  console.log("sprite " + sprite);
   const player = self.add
     .sprite(playerInfo.x, playerInfo.y, sprite)
     .setOrigin(0.5, 0.5)
@@ -106,4 +112,36 @@ function displayPlayers(self, playerInfo, sprite) {
   player.playerId = playerInfo.playerId;
   self.players.add(player);
 }
-function update() {}
+function update() {
+  const left = this.leftKeyPressed;
+  const right = this.rightKeyPressed;
+  const up = this.upKeyPressed;
+  if (this.cursors.left.isDown) {
+    console.log('left')
+    this.leftKeyPressed = true;
+  } else if (this.cursors.right.isDown) {
+    console.log('right')
+    this.rightKeyPressed = true;
+  } else {
+    this.leftKeyPressed = false;
+    this.rightKeyPressed = false;
+  }
+  if (this.cursors.up.isDown) {
+    console.log('up')
+    this.upKeyPressed = true;
+  } else {
+    this.upKeyPressed = false;
+  }
+  if (
+    left !== this.leftKeyPressed ||
+    right !== this.rightKeyPressed ||
+    up !== this.upKeyPressed
+  ) {
+    console.log('register playerInput')
+    this.socket.emit("playerInput", {
+      left: this.leftKeyPressed,
+      right: this.rightKeyPressed,
+      up: this.upKeyPressed,
+    });
+  }
+}
